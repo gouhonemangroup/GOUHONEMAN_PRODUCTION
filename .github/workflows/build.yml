@@ -1,0 +1,43 @@
+name: Compiler GOUHONEMAN
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Décompresser GOUHONEMAN.zip
+        run: |
+          rm -rf projet
+          mkdir projet
+          unzip -q -o GOUHONEMAN.zip -d projet
+          # si le zip contient un seul dossier, on remonte son contenu
+          if [ ! -f projet/settings.gradle.kts ]; then
+            sub=$(find projet -maxdepth 2 -name settings.gradle.kts -printf '%h\n' | head -n1)
+            cp -a "$sub"/. projet/
+          fi
+          ls projet
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compiler l'APK
+        working-directory: projet
+        run: gradle assembleDebug --no-daemon
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GOUHONEMAN
+          path: projet/app/build/outputs/apk/debug/*.apk
